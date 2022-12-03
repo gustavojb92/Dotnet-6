@@ -14,9 +14,11 @@ internal class Program
         builder.Services.AddEndpointsApiExplorer();
         builder.Services.AddSwaggerGen();
 
-        builder.Services.AddEntityFrameworkNpgsql()
-        .AddDbContext<ApiDbContext>(opt =>
-        opt.UseNpgsql(builder.Configuration.GetConnectionString("SampleDbConnection")));
+        builder.Services.AddDbContext<ApiDbContext>(options =>
+{
+    options.UseLazyLoadingProxies().UseNpgsql(builder.Configuration.GetConnectionString("SampleDbConnection"),
+    assembly => assembly.MigrationsAssembly(typeof(ApiDbContext).Assembly.FullName));
+});
 
         var app = builder.Build();
 
