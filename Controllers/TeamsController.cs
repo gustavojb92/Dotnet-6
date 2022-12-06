@@ -1,62 +1,48 @@
 using Microsoft.AspNetCore.Mvc;
 using Dotnet_6.Models;
 using Dotnet_6.Data;
+using Dotnet_6.Domain;
+using Dotnet_6.Models.Dto.Team;
+using Dotnet_6.Interfaces;
 
 [Route("/api/[controller]")]
 [ApiController]
 public class TeamsController : ControllerBase
 {
 
-    private static ApiDbContext _context;
-    public TeamsController(ApiDbContext context)
+    private static ITeam _iTeam;
+    public TeamsController(ITeam iteam)
     {
-        _context = context;
+        _iTeam = iteam;
     }
 
     [HttpGet]
     public IActionResult Get()
     {
-        var teams = _context.Teams.ToList();
-        return Ok(teams);
+        var teams = _iTeam.GetAll();
+        return teams == null ? NotFound("Não há Times cadastrados") : Ok(teams);
     }
 
     [HttpGet("{ID}")]
     public IActionResult Get(int ID)
     {
-        var selectedTeam = _context.Teams.FirstOrDefault(x => x.Id == ID);
+        var selectedTeam = _iTeam.GetById(ID);
 
         return selectedTeam == null ? BadRequest(error: "Não encontrado") : Ok(selectedTeam);
     }
 
     [HttpPost]
-    public IActionResult Post(Team newTeam)
+    public IActionResult Post(AddTeamDTO newTeam)
     {
-        _context.Teams.Add(newTeam);
-        _context.SaveChanges();
-        return CreatedAtAction("Get", routeValues: newTeam.Id, value: newTeam);
-    }
-
-    [HttpPatch("{id}")]
-    public IActionResult Patch(int id, string name)
-    {
-        var editTeam = _context.Teams.FirstOrDefault(x => x.Id == id);
-
-        if (editTeam == null) return BadRequest(error: "Não encontrado");
-
-        editTeam.Name = name;
-        _context.SaveChanges();
-        return NoContent();
+        var team = _iTeam.Post(newTeam);
+        return  team == null ? BadRequest("Não foi possivel salvar") : CreatedAtAction("Get", routeValues: team.Id , value: team);
     }
 
     [HttpDelete("{id}")]
     public IActionResult Delete(int id)
     {
-        var deleteTeam = _context.Teams.FirstOrDefault(x => x.Id == id);
+        var deleteTeam = _iTeam.Delete(id);
 
-        if (deleteTeam == null) return BadRequest(error: "Não encontrado");
-
-        _context.Teams.Remove(deleteTeam);
-        _context.SaveChanges();
-        return NoContent();
+        return deleteTeam ? NoContent() : BadRequest(error: "Não encontrado");
     }
 }

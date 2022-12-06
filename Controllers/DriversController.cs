@@ -1,63 +1,61 @@
 using Microsoft.AspNetCore.Mvc;
 using Dotnet_6.Models;
-using Dotnet_6.Data;
+using Dotnet_6.Domain;
+using Dotnet_6.Models.Dto.Driver;
+using Dotnet_6.Interfaces;
+using Dotnet_6.Exceptions.Interface;
+using FluentResults;
 
 [Route("/api/[controller]")]
 [ApiController]
 public class DriversController : ControllerBase
 {
-    private static ApiDbContext _context;
+    private static IDriver _iDriver;
 
-    public DriversController(ApiDbContext context)
+    public readonly IDriverException _iDriverException;
+
+    public DriversController(DriverDomain iDriver, IDriverException iDriverException)
     {
-        _context = context;
+        _iDriver = iDriver;
+        _iDriverException = iDriverException;
+    }
+
+    public static IEnumerable<String> messageException(Result resultado)
+    {
+        return resultado.Reasons.Select(reason => reason.Message);
     }
 
     [HttpGet]
     public IActionResult Get()
     {
-        var drivers = _context.Drivers.ToList();
-        return Ok(drivers);
+        var drivers = _iDriver.GetAll();
+        return drivers == null ? NotFound("Nenhum piloto encontrado") : Ok(drivers);
     }
 
     [HttpGet("{ID}")]
     public IActionResult Get(int ID)
     {
-        var selectedDriver = _context.Drivers.FirstOrDefault(x => x.Id == ID);
+        var selectedDriver = _iDriver.GetById(ID);
 
-        return selectedDriver == null ? BadRequest("Não encontrado") : Ok(selectedDriver);
+        return selectedDriver == null ? NotFound("Não encontrado") : Ok(selectedDriver);
     }
 
     [HttpPost]
-    public IActionResult Post(Driver newDriver)
+    public IActionResult Post(AddDriverDTO driverDTO)
     {
-        _context.Drivers.Add(newDriver);
-        _context.SaveChanges();
-        return CreatedAtAction("Get", routeValues: newDriver.Id, value: newDriver);
-    }
+        Result driverException = _iDriverException.NoRepeatDriverException(driverDTO.Name);
 
-    [HttpPatch("{ID}")]
-    public IActionResult Patch(int ID, string NewFavoriteColor)
-    {
-        var editDriver = _context.Drivers.FirstOrDefault(x => x.Id == ID);
+        if (driverException.IsFailed) return BadRequest(messageException(driverException));
 
-        if (editDriver == null) return BadRequest(error: "Não encontrado");
+        var newDriver = _iDriver.Post(driverDTO);
 
-        editDriver.FavoriteColor = NewFavoriteColor;
-        _context.SaveChanges();
-        return NoContent();
-
+        return newDriver == null ? BadRequest("Não foi possivel salvar") : CreatedAtAction("Get", routeValues: newDriver.Id, value: newDriver);
     }
 
     [HttpDelete("{ID}")]
     public IActionResult Delete(int ID)
     {
-        var deleteDriver = _context.Drivers.FirstOrDefault(x => x.Id == ID);
-
-        if (deleteDriver == null) return BadRequest(error: "Não encontrado");
-
-        _context.Drivers.Remove(deleteDriver);
-        _context.SaveChanges();
-        return NoContent();
+        var deleteDriver = _iDriver.Delete(ID);
+        return deleteDriver ? Ok() : BadRequest(error: "Não encontrado");
     }
 }

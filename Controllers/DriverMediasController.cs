@@ -1,65 +1,48 @@
 using Microsoft.AspNetCore.Mvc;
 using Dotnet_6.Data;
 using Dotnet_6.Models;
-
+using Dotnet_6.Domain;
+using Dotnet_6.Models.Dto.DriverMedia;
+using Dotnet_6.Interfaces;
 
 [Route("/api/[controller]")]
 [ApiController]
 public class DriverMediasController : ControllerBase
 {
-    private static ApiDbContext _context;
-    public DriverMediasController(ApiDbContext context)
+    private static IDriverMedia _iDriverMedia;
+    public DriverMediasController(IDriverMedia iDriverMedia)
     {
-        _context = context;
+        _iDriverMedia = iDriverMedia;
     }
 
     [HttpGet]
     public IActionResult Get()
     {
-        var driverMedias = _context.DriverMedias.ToList();
+        var driverMedias = _iDriverMedia.GetAll();
 
-        return Ok(driverMedias);
+        return driverMedias == null ? NotFound("Não há medias cadastradas") : Ok(driverMedias);
     }
 
     [HttpGet("{ID}")]
     public IActionResult Get(int ID)
     {
-        var selectedDriverMedia = _context.DriverMedias.FirstOrDefault(x => x.Id == ID);
+        var selectedDriverMedia = _iDriverMedia.GetById(ID);
 
         return selectedDriverMedia == null ? BadRequest(error: "Não encontrado") : Ok(selectedDriverMedia);
     }
 
     [HttpPost]
-    public IActionResult Post(DriverMedia newDriverMedia)
+    public IActionResult Post(AddDriverMediaDTO driverMediaDTO)
     {
-        _context.DriverMedias.Add(newDriverMedia);
-        _context.SaveChanges();
-        return CreatedAtAction("Get", routeValues: newDriverMedia.Id, value: newDriverMedia);
-
-    }
-
-    [HttpPatch("{ID}")]
-    public IActionResult Patch(int ID, string media)
-    {
-        var editDriverMedias = _context.DriverMedias.FirstOrDefault(x => x.Id == ID);
-
-        if (editDriverMedias == null) return BadRequest(error: "Não Encontrado");
-
-        editDriverMedias.Media = media;
-        _context.SaveChanges();
-        return NoContent();
+        var newDriverMedia = _iDriverMedia.Post(driverMediaDTO);
+        return newDriverMedia == null ? BadRequest("Não foi possivel salvar") : CreatedAtAction("Get", routeValues: newDriverMedia.Id, value: newDriverMedia);
 
     }
 
     [HttpDelete("{ID}")]
     public IActionResult Delete(int ID)
     {
-        var deleteDriverMedia = _context.DriverMedias.FirstOrDefault(x => x.Id == ID);
-
-        if (deleteDriverMedia == null) return BadRequest(error: "Não encontrado");
-
-        _context.DriverMedias.Remove(deleteDriverMedia);
-        _context.SaveChanges();
-        return NoContent();
+        var deleteDriverMedia = _iDriverMedia.Delete(ID);
+        return deleteDriverMedia ? NoContent() : BadRequest(error: "Não encontrado");
     }
 }
