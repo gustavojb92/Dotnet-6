@@ -20,7 +20,7 @@ namespace Dotnet_6.Exceptions
         public Result NoRepeatDriverException(string driverName)
         {
             var findDriver = _context.Drivers.FirstOrDefault(x => x.Name == driverName);
-            return findDriver == null ? Result.Fail("Piloto já cadastrado") : Result.Ok();
+            return findDriver != null ? Result.Fail("Piloto já cadastrado") : Result.Ok();
         }
     }
 }

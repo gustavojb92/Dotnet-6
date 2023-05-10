@@ -1,6 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
 using Dotnet_6.Models;
-using Dotnet_6.Domain;
 using Dotnet_6.Models.Dto.Driver;
 using Dotnet_6.Interfaces;
 using Dotnet_6.Exceptions.Interface;
@@ -14,7 +13,7 @@ public class DriversController : ControllerBase
 
     public readonly IDriverException _iDriverException;
 
-    public DriversController(DriverDomain iDriver, IDriverException iDriverException)
+    public DriversController(IDriver iDriver, IDriverException iDriverException)
     {
         _iDriver = iDriver;
         _iDriverException = iDriverException;
